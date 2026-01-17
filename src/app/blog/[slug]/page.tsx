@@ -227,7 +227,7 @@ export default function BlogPostPage() {
             </header>
 
             {/* Article */}
-            <article className="container mx-auto max-w-4xl px-6 py-12">
+            <article className="container mx-auto max-w-4xl px-6 py-12 overflow-x-hidden">
                 {/* Article Header */}
                 <motion.header
                     initial={{ opacity: 0, y: 30 }}
