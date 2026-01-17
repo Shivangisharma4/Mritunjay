@@ -8,20 +8,22 @@ import { format } from 'date-fns';
 import {
     ArrowLeft,
     Plus,
-    Edit,
-    Trash2,
+    PencilSimple,
+    Trash,
     Eye,
-    EyeOff,
+    EyeSlash,
     Star,
-    LogIn,
-    LogOut,
-    Loader2,
-    Save,
+    SignIn,
+    SignOut,
+    SpinnerGap,
+    FloppyDisk,
     X,
     FileText,
-} from 'lucide-react';
+    ThumbsUp,
+    ChatCircle,
+} from '@phosphor-icons/react/dist/ssr';
 import DotPattern from '@/components/DotPattern';
-import { BlogPost, getAllPosts, createPost, updatePost, deletePost, generateSlug, calculateReadingTime } from '@/lib/blog';
+import { BlogPost, getAllPosts, createPost, updatePost, deletePost, generateSlug, calculateReadingTime, getComments, Comment } from '@/lib/blog';
 
 // Demo mode flag (set to false when Firebase is configured)
 const DEMO_MODE = false;
@@ -89,6 +91,8 @@ export default function AdminPage() {
     const [loginError, setLoginError] = useState('');
     const [fetchError, setFetchError] = useState('');
     const [activeFilter, setActiveFilter] = useState<'all' | 'published' | 'drafts' | 'featured'>('all');
+    const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+    const [selectedPostComments, setSelectedPostComments] = useState<{ post: BlogPost; comments: Comment[] } | null>(null);
 
     // Fetch posts on mount
     useEffect(() => {
@@ -97,6 +101,20 @@ export default function AdminPage() {
             try {
                 const fetchedPosts = await getAllPosts();
                 setPosts(fetchedPosts);
+
+                // Fetch comment counts for each post
+                const counts: Record<string, number> = {};
+                for (const post of fetchedPosts) {
+                    if (post.id) {
+                        try {
+                            const comments = await getComments(post.id);
+                            counts[post.id] = comments.length;
+                        } catch (e) {
+                            counts[post.id] = 0;
+                        }
+                    }
+                }
+                setCommentCounts(counts);
             } catch (error: any) {
                 console.error("Failed to fetch posts:", error);
                 if (error?.code === 'permission-denied') {
@@ -327,7 +345,7 @@ export default function AdminPage() {
                                 type="submit"
                                 className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] rounded-lg font-medium transition-all hover:opacity-90"
                             >
-                                <LogIn className="w-4 h-4" />
+                                <SignIn weight="bold" className="w-4 h-4" />
                                 Sign In
                             </button>
                         </form>
@@ -496,9 +514,9 @@ Your content here...
                                     className="flex items-center gap-2 px-6 py-2.5 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] rounded-lg font-medium transition-all hover:opacity-90 disabled:opacity-50"
                                 >
                                     {isLoading ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <SpinnerGap className="w-4 h-4 animate-spin" />
                                     ) : (
-                                        <Save className="w-4 h-4" />
+                                        <FloppyDisk weight="bold" className="w-4 h-4" />
                                     )}
                                     {editingPost ? 'Update Post' : 'Create Post'}
                                 </button>
@@ -543,7 +561,7 @@ Your content here...
                                 onClick={handleLogout}
                                 className="flex items-center gap-2 px-4 py-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
                             >
-                                <LogOut className="w-4 h-4" />
+                                <SignOut weight="bold" className="w-4 h-4" />
                                 <span className="hidden sm:inline">Logout</span>
                             </button>
                         </div>
@@ -626,7 +644,7 @@ Your content here...
                         </div>
                     ) : isLoading ? (
                         <div className="card p-12 text-center">
-                            <Loader2 className="w-12 h-12 text-[hsl(var(--primary))] mx-auto mb-4 animate-spin" />
+                            <SpinnerGap className="w-12 h-12 text-[hsl(var(--primary))] mx-auto mb-4 animate-spin" />
                             <p className="text-[hsl(var(--muted-foreground))]">Loading posts...</p>
                         </div>
                     ) : (() => {
@@ -676,9 +694,17 @@ Your content here...
                                                 <h3 className="font-heading font-semibold text-[hsl(var(--foreground))] truncate hindi">
                                                     {post.title}
                                                 </h3>
-                                                <p className="text-sm text-[hsl(var(--muted-foreground))] mt-1">
-                                                    {format(post.createdAt, 'dd MMM yyyy')} · {post.readingTime} min read
-                                                </p>
+                                                <div className="flex items-center gap-4 text-sm text-[hsl(var(--muted-foreground))] mt-1">
+                                                    <span>{format(post.createdAt, 'dd MMM yyyy')} · {post.readingTime} min</span>
+                                                    <span className="flex items-center gap-1">
+                                                        <ThumbsUp weight="bold" className="w-3.5 h-3.5" />
+                                                        {post.likes || 0}
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <ChatCircle weight="bold" className="w-3.5 h-3.5" />
+                                                        {commentCounts[post.id!] || 0}
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             <div className="flex items-center gap-2">
@@ -700,21 +726,21 @@ Your content here...
                                                         }`}
                                                     title={post.published ? 'Unpublish' : 'Publish'}
                                                 >
-                                                    {post.published ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                                    {post.published ? <Eye weight="bold" className="w-4 h-4" /> : <EyeSlash weight="bold" className="w-4 h-4" />}
                                                 </button>
                                                 <button
                                                     onClick={() => handleEdit(post)}
                                                     className="p-2 rounded-lg hover:bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] transition-colors"
                                                     title="Edit"
                                                 >
-                                                    <Edit className="w-4 h-4" />
+                                                    <PencilSimple weight="bold" className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => checkDelete(post.id!)}
                                                     className="p-2 rounded-lg hover:bg-red-100 text-red-600 transition-colors"
                                                     title="Delete"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <Trash weight="bold" className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </div>
