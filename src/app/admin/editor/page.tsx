@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -74,7 +74,25 @@ const emptyForm: EditorFormData = {
     featured: false,
 };
 
+// Loading component
+function EditorLoading() {
+    return (
+        <div className="min-h-screen flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-[hsl(var(--primary))]" />
+        </div>
+    );
+}
+
+// Main export with Suspense wrapper
 export default function EditorPage() {
+    return (
+        <Suspense fallback={<EditorLoading />}>
+            <EditorContent />
+        </Suspense>
+    );
+}
+
+function EditorContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const editId = searchParams.get('id');
