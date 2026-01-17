@@ -30,6 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
+        if (!auth) {
+            setLoading(false);
+            return;
+        }
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setUser(user);
             setIsAdmin(user?.email === ADMIN_EMAIL);
@@ -40,15 +44,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const signInWithGoogle = async () => {
+        if (!auth) throw new Error('Auth not initialized');
         const provider = new GoogleAuthProvider();
         await signInWithPopup(auth, provider);
     };
 
     const signInWithEmail = async (email: string, password: string) => {
+        if (!auth) throw new Error('Auth not initialized');
         await signInWithEmailAndPassword(auth, email, password);
     };
 
     const signOut = async () => {
+        if (!auth) throw new Error('Auth not initialized');
         await firebaseSignOut(auth);
     };
 
